@@ -101,46 +101,47 @@ simplifyL (d:ds) = case simplify1 d of
 -- Reduction
 -----------------------------------------
 
-type DCons = Dialog -> Dialog
+data RS = RS [Dialog -> Dialog] Dialog [Response]
 
-type ReductionState = ([DCons], Dialog, [Response])
+instance Show RS where
+  show (RS lam d inp) = "(Lam{len=" ++ show (length lam) ++ "}, " ++ show d ++ ", " ++ show inp ++ ")"
 
 -- Builts a reduction state and reduces as far as possible.
 -- Should always reduce to at most one state.
-stage :: Dialog -> [Response] -> Maybe Dialog
-stage d rs = case reduceStar [([const Empty], d, rs)] of
-  [(dcons, d, [])] -> Just (foldr ($) d dcons)
-  _                -> Nothing
+dialogAcceptsInput :: Dialog -> [Response] -> Bool
+dialogAcceptsInput d inp = case reduceStar [RS [const Empty] d inp] of
+  [RS [] Empty []] -> True
+  _                -> False
 
 -- Reduce as far as possible
-reduceStar :: [ReductionState] -> [ReductionState]
+reduceStar :: [RS] -> [RS]
 reduceStar rs = case rs >>= reduce of
   [] -> rs
   rs' -> reduceStar rs'
 
 -- Implements the reduction relation (~>) described in the document.
 -- The non-determinism is handled with lists.
-reduce :: ReductionState -> [ReductionState]
+reduce :: RS -> [RS]
 -- [empty]
-reduce (f:lam, Empty, inp) = [(lam, f Empty, inp)]
+reduce (RS (f:lam) Empty inp) = [RS lam (f Empty) inp]
 -- [atom]
-reduce (f:lam, Atom x, (One y):inp)
-  | x == y    = [(lam, f Empty, inp)]
+reduce (RS (f:lam) (Atom x) ((One y):inp))
+  | x == y    = [RS lam (f Empty) inp]
   | otherwise = []
 -- [arrow]
-reduce (f1:f2:lam, Up d, inp) = [(f2 . f1 : lam, d, inp)]
+reduce (RS (f1:f2:lam) (Up d) inp) = [RS (f2 . f1 : lam) d inp]
 -- [C]
-reduce (lam, C (d:ds), inp) = [((\d' -> simplify (C (d':ds))):lam, d, inp)]
+reduce (RS lam (C (d:ds)) inp) = [RS ((\d' -> simplify (C (d':ds))):lam) d inp]
 -- [W]
-reduce (lam, W ds, inp) =
+reduce (RS lam (W ds) inp) =
   do (dcon, d) <- extractEach [] ds
-     return (dcon:lam, d, inp)
+     return (RS (dcon:lam) d inp)
   where extractEach d1 [] = []
         extractEach d1 (d:ds) = (\d' -> simplify (W (d1++[d']++ds)), d)
                               : extractEach (d1++[d]) ds
 -- [I]
-reduce (f:lam, I ss, (Tup rs):inp)
-  | ss `setEq` rs = [(lam, f Empty, inp)]
+reduce (RS (f:lam) (I ss) ((Tup rs):inp))
+  | ss `setEq` rs = [RS lam (f Empty) inp]
   | otherwise     = []
 reduce _ = []
 
@@ -188,15 +189,12 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
          | Set.member x prefix = rmp xs (Set.delete x prefix)
          | otherwise           = Nothing
 
-showTriple :: ReductionState -> String
-showTriple (lam, d, inp) = "(Lambda, " ++ show d ++ ", " ++ show inp ++ ")"
-
 ------------------------------------------------------
 -- Tests. The result_ values should all be (Just ~) --
 ------------------------------------------------------
       
 dialogA = W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]]
-tripleA = [([const Empty], dialogA, [One "a", One "x", One "y", One "b"])]
+rsA = RS [const Empty] dialogA [One "a", One "x", One "y", One "b"]
 
 dialogB = W [I ["a", "b", "c"], I ["x", "y"]]
-tripleB = [([const Empty], dialogB, [Tup ["x", "y"], Tup ["a", "b", "c"]])]
+rsB = RS [const Empty] dialogB [Tup ["x", "y"], Tup ["a", "b", "c"]]
