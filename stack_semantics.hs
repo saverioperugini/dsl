@@ -1,4 +1,5 @@
 import qualified Data.Set as Set
+import Control.Monad.State
 
 data Dialog = Empty
             | Atom String
@@ -7,7 +8,7 @@ data Dialog = Empty
             | Up Dialog
 --            | SPE [String]
 --            | SPEstar [String]
---            | SPE' [Dialog]
+            | SPE' [Dialog]
 --            | PFA1 [String]
 --            | PFA1star [String]
 --            | PFAn [String]
@@ -18,12 +19,13 @@ data Dialog = Empty
 --            | Union Dialog Dialog
 
 instance Show Dialog where
-  show Empty = "~"
-  show (Atom s) = s
-  show (I ss) = "(I " ++ unwords ss ++ ")"
-  show (C ds) = "(C " ++ unwords (show <$> ds) ++ ")"
-  show (Up d) = "(Up " ++ show d ++ ")"
-  show (W ds) = "(W " ++ unwords (show <$> ds) ++ ")"
+  show Empty     = "~"
+  show (Atom s)  = s
+  show (I ss)    = "(I " ++ unwords ss ++ ")"
+  show (C ds)    = "(C " ++ unwords (show <$> ds) ++ ")"
+  show (Up d)    = "(Up " ++ show d ++ ")"
+  show (SPE' ds) = "(SPE' " ++ unwords (show <$> ds) ++ ")"
+  show (W ds)    = "(W " ++ unwords (show <$> ds) ++ ")"
 
 data Response = One String
               | Tup [String]
@@ -53,7 +55,7 @@ simplify1 (W []) = Just Empty
 simplify1 (I []) = Just Empty
 --simplify1 (SPE []) = Just Empty
 --simplify1 (SPEstar []) = Just Empty
---simplify1 (SPE' []) = Just Empty
+simplify1 (SPE' []) = Just Empty
 --simplify1 (PFA1 []) = Just Empty
 --simplify1 (PFA1star []) = Just Empty
 --simplify1 (PFAn []) = Just Empty
@@ -66,7 +68,7 @@ simplify1 (W [d]) = Just d
 simplify1 (I [x]) = Just (Atom x)
 --simplify1 (SPE [x]) = Just (Atom x)
 --simplify1 (SPEstar [x]) = Just (Atom x)
---simplify1 (SPE' [d]) = Just d
+simplify1 (SPE' [d]) = Just d
 --simplify1 (PFA1 [x]) = Just (Atom x)
 --simplify1 (PFA1star [x]) = Just (Atom x)
 --simplify1 (PFAn [x]) = Just (Atom x)
@@ -79,7 +81,9 @@ simplify1 (C ds) = case removeEmptyDialogs ds of
   Nothing      -> case flattenCurries ds of
     Just newsubs -> Just (C newsubs)
     Nothing      -> C <$> simplifyL ds
---simplify1 (SPE' ds) = SPE' <$> simplifyL ds
+simplify1 (SPE' ds) = case removeEmptyDialogs ds of
+  Just newsubs -> Just (SPE' newsubs)
+  Nothing      -> SPE' <$> simplifyL ds
 simplify1 (W ds) = case removeEmptyDialogs ds of
   Just newsubs -> Just (W newsubs)
   Nothing      -> W <$> simplifyL ds
@@ -116,7 +120,7 @@ dialogAcceptsInput d inp = case reduceStar [RS [const Empty] d inp] of
 -- Reduce as far as possible
 reduceStar :: [RS] -> [RS]
 reduceStar rs = case rs >>= reduce of
-  [] -> rs
+  []  -> rs
   rs' -> reduceStar rs'
 
 -- Implements the reduction relation (~>) described in the document.
@@ -139,11 +143,33 @@ reduce (RS lam (W ds) inp) =
   where extractEach d1 [] = []
         extractEach d1 (d:ds) = (\d' -> simplify (W (d1++[d']++ds)), d)
                               : extractEach (d1++[d]) ds
+-- [SPE']
+reduce (RS lam (SPE' ds) inp) =
+  do (dcon, d) <- extractEach [] ds
+     return (RS (dcon:lam) d inp)
+  where extractEach d1 [] = []
+        extractEach d1 (d:ds) = (\d' -> simplify (SPE' (d1++[d']++ds)), d)
+                              : extractEach (d1++[d]) ds
 -- [I]
 reduce (RS (f:lam) (I ss) ((Tup rs):inp))
   | ss `setEq` rs = [RS lam (f Empty) inp]
   | otherwise     = []
 reduce _ = []
+
+--------------------------------
+--- Staging
+--------------------------------
+
+type DialogState = StateT [Dialog -> Dialog] Maybe Dialog
+
+stage :: Response -> Dialog -> DialogState
+stage inp d =
+  do dcons <- get
+     case reduceStar [RS dcons d [inp]] of
+       [RS dcons' d' []] ->
+         do put dcons'
+            return d'
+       _ -> lift Nothing
 
 --------------------------------
 ------ Utility Functions -------
