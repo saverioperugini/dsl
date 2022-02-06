@@ -208,10 +208,10 @@ initDialog :: Dialog -> Maybe RS
 initDialog d = Just (RS [const Empty] d [])
 
 stage :: Response -> RS -> Maybe RS
-stage inp (RS lam d inp') =
-  case reduceStar (reduce (RS lam d (inp' ++ [inp]))) of
-    [reduced] -> Just reduced
-    _         -> Nothing
+stage inp (RS lam d _) =
+  case reduceStar (reduce (RS lam d [inp])) of
+    [RS lam' d' []] -> Just (RS lam' d' [])
+    _               -> Nothing
 
 -- Alternate implementation
 --stage :: Response -> RS -> Maybe RS
