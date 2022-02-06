@@ -3,29 +3,39 @@ import Control.Monad.State
 
 data Dialog = Empty
             | Atom String
-            | I [String]
-            | C [Dialog]
             | Up Dialog
---            | SPE [String]
---            | SPEstar [String]
-            | SPE' [Dialog]
---            | PFA1 [String]
---            | PFA1star [String]
---            | PFAn [String]
---            | PFAnstar [String]
---            | PE [String]
---            | PEstar [String]
+            | Union Dialog Dialog
+            | C [Dialog]
             | W [Dialog]
---            | Union Dialog Dialog
+            | I [String]
+            | SPE [String]
+            | SPEstar [String]
+            | SPE' [Dialog]
+            | PFA1 [String]
+            | PFA1star [String]
+            | PFAn [String]
+            | PFAnstar [String]
+            | PE [String]
+            | PEstar [String]
 
 instance Show Dialog where
-  show Empty     = "~"
-  show (Atom s)  = s
-  show (I ss)    = "(I " ++ unwords ss ++ ")"
-  show (C ds)    = "(C " ++ unwords (show <$> ds) ++ ")"
-  show (Up d)    = "(Up " ++ show d ++ ")"
-  show (SPE' ds) = "(SPE' " ++ unwords (show <$> ds) ++ ")"
-  show (W ds)    = "(W " ++ unwords (show <$> ds) ++ ")"
+  show Empty         = "~"
+  show (Atom s)      = s
+  show (Up d)        = "(Up "    ++ show d ++ ")"
+  show (Union d1 d2) = show d1 ++ " ∪ " ++ show d2
+  show (I ss)        = "(I "     ++ unwords ss ++ ")"
+  show (C ds)        = "(C "     ++ unwords (show <$> ds) ++ ")"
+  show (W ds)        = "(W "     ++ unwords (show <$> ds) ++ ")"
+  show (SPE xs)      = "(SPE "   ++ unwords xs ++ ")"
+  show (SPEstar xs)  = "(SPE* "  ++ unwords xs ++ ")"
+  show (SPE' ds)     = "(SPE' "  ++ unwords (show <$> ds) ++ ")"
+  show (PFA1 xs)     = "(PFA1 "  ++ unwords xs ++ ")"
+  show (PFA1star xs) = "(PFA1* " ++ unwords xs ++ ")"
+  show (PFAn xs)     = "(PFAn "  ++ unwords xs ++ ")"
+  show (PFAnstar xs) = "(PFAn* " ++ unwords xs ++ ")"
+  show (PE xs)       = "(PE "    ++ unwords xs ++ ")"
+  show (PEstar xs)   = "(PE* "   ++ unwords xs ++ ")"
+--  show (Union d1 d2) = "(Union " ++ show d1 ++ " " ++ show d2 ++ ")"
 
 data Response = One String
               | Tup [String]
@@ -53,28 +63,28 @@ simplify1 :: Dialog -> Maybe Dialog
 simplify1 (C []) = Just Empty
 simplify1 (W []) = Just Empty
 simplify1 (I []) = Just Empty
---simplify1 (SPE []) = Just Empty
---simplify1 (SPEstar []) = Just Empty
+simplify1 (SPE []) = Just Empty
+simplify1 (SPEstar []) = Just Empty
 simplify1 (SPE' []) = Just Empty
---simplify1 (PFA1 []) = Just Empty
---simplify1 (PFA1star []) = Just Empty
---simplify1 (PFAn []) = Just Empty
---simplify1 (PFAnstar []) = Just Empty
---simplify1 (PE []) = Just Empty
---simplify1 (PEstar []) = Just Empty
+simplify1 (PFA1 []) = Just Empty
+simplify1 (PFA1star []) = Just Empty
+simplify1 (PFAn []) = Just Empty
+simplify1 (PFAnstar []) = Just Empty
+simplify1 (PE []) = Just Empty
+simplify1 (PEstar []) = Just Empty
 -- Rule 2: one subdialog
 simplify1 (C [d]) = Just d
 simplify1 (W [d]) = Just d
 simplify1 (I [x]) = Just (Atom x)
---simplify1 (SPE [x]) = Just (Atom x)
---simplify1 (SPEstar [x]) = Just (Atom x)
+simplify1 (SPE [x]) = Just (Atom x)
+simplify1 (SPEstar [x]) = Just (Atom x)
 simplify1 (SPE' [d]) = Just d
---simplify1 (PFA1 [x]) = Just (Atom x)
---simplify1 (PFA1star [x]) = Just (Atom x)
---simplify1 (PFAn [x]) = Just (Atom x)
---simplify1 (PFAnstar [x]) = Just (Atom x)
---simplify1 (PE [x]) = Just (Atom x)
---simplify1 (PEstar [x]) = Just (Atom x)
+simplify1 (PFA1 [x]) = Just (Atom x)
+simplify1 (PFA1star [x]) = Just (Atom x)
+simplify1 (PFAn [x]) = Just (Atom x)
+simplify1 (PFAnstar [x]) = Just (Atom x)
+simplify1 (PE [x]) = Just (Atom x)
+simplify1 (PEstar [x]) = Just (Atom x)
 -- Other rules
 simplify1 (C ds) = case removeEmptyDialogs ds of
   Just newsubs -> Just (C newsubs)
@@ -87,11 +97,11 @@ simplify1 (SPE' ds) = case removeEmptyDialogs ds of
 simplify1 (W ds) = case removeEmptyDialogs ds of
   Just newsubs -> Just (W newsubs)
   Nothing      -> W <$> simplifyL ds
---simplify1 (Union d1 d2) = case simplify1 d1 of
---  Just d1' -> Just (Union d1' d2)
---  Nothing  -> case simplify1 d2 of
---    Just d2' -> Just (Union d1 d2')
---    Nothing  -> Nothing
+simplify1 (Union d1 d2) = case simplify1 d1 of
+  Just d1' -> Just (Union d1' d2)
+  Nothing  -> case simplify1 d2 of
+    Just d2' -> Just (Union d1 d2')
+    Nothing  -> Nothing
 simplify1 _ = Nothing
 
 -- Simplifies the first dialog it can
@@ -117,7 +127,7 @@ dialogAcceptsInput d inp = case reduceStar [RS [const Empty] d inp] of
   [RS [] Empty []] -> True
   _                -> False
 
--- Reduce as far as possible
+-- Reduces zero or more times, as far as possible
 reduceStar :: [RS] -> [RS]
 reduceStar rs = case rs >>= reduce of
   []  -> rs
@@ -134,6 +144,8 @@ reduce (RS (f:lam) (Atom x) ((One y):inp))
   | otherwise = []
 -- [arrow]
 reduce (RS (f1:f2:lam) (Up d) inp) = [RS (f2 . f1 : lam) d inp]
+-- [union]
+reduce (RS lam (Union d1 d2) inp) = [RS lam d1 inp, RS lam d2 inp]
 -- [C]
 reduce (RS lam (C (d:ds)) inp) = [RS ((\d' -> simplify (C (d':ds))):lam) d inp]
 -- [W]
@@ -143,6 +155,21 @@ reduce (RS lam (W ds) inp) =
   where extractEach d1 [] = []
         extractEach d1 (d:ds) = (\d' -> simplify (W (d1++[d']++ds)), d)
                               : extractEach (d1++[d]) ds
+-- [I]
+reduce (RS (f:lam) (I ss) ((Tup rs):inp))
+  | ss `setEq` rs = [RS lam (f Empty) inp]
+  | otherwise     = []
+-- [SPE]
+reduce (RS lam (SPE xs) ((One y):inp))
+  | y `elem` xs = [RS lam (simplify (I (xs `setSubtract` [y]))) inp]
+  | otherwise   = []
+-- [SPE*]
+reduce (RS lam (SPEstar xs) ((One y):inp))
+  | y `elem` xs = [RS lam (simplify (SPEstar (xs `setSubtract` [y]))) inp]
+  | otherwise   = []
+reduce (RS lam (SPEstar xs) ((Tup ys):inp))
+  | xs `setEq` ys = [RS lam Empty inp]
+  | otherwise     = []
 -- [SPE']
 reduce (RS lam (SPE' ds) inp) =
   do (dcon, d) <- extractEach [] ds
@@ -150,26 +177,49 @@ reduce (RS lam (SPE' ds) inp) =
   where extractEach d1 [] = []
         extractEach d1 (d:ds) = (\d' -> simplify (SPE' (d1++[d']++ds)), d)
                               : extractEach (d1++[d]) ds
--- [I]
-reduce (RS (f:lam) (I ss) ((Tup rs):inp))
-  | ss `setEq` rs = [RS lam (f Empty) inp]
-  | otherwise     = []
+-- [PFA1]
+reduce (RS lam (PFA1 (x:xs)) ((One y):inp))
+  | x == y    = [RS lam (simplify (I xs)) inp]
+  | otherwise = []
+-- [PFA1star]
+reduce (RS lam (PFA1star (x:xs)) ((One y):inp))
+  | x == y    = [RS lam (simplify (PFA1star xs)) inp]
+  | otherwise = []
+reduce (RS lam (PFA1star xs) ((Tup ys):inp))
+  | xs `setEq` ys = [RS lam Empty inp]
+  | otherwise = []
+-- [PE]
+reduce (RS lam (PE xs) ((Tup ys):inp))
+  | ys `subsetOf` xs = [RS lam (simplify (I (xs `setSubtract` ys))) inp]
+  | otherwise        = []
+reduce (RS lam (PE xs) ((One y):inp)) = reduce (RS lam (PE xs) ((Tup [y]):inp))
+-- [PE*]
+reduce (RS lam (PEstar xs) ((Tup ys):inp))
+  | ys `subsetOf` xs = [RS lam (simplify (PEstar (xs `setSubtract` ys))) inp]
+  | otherwise        = []
+reduce (RS lam (PEstar xs) ((One y):inp)) = reduce (RS lam (PEstar xs) ((Tup [y]):inp))
 reduce _ = []
 
 --------------------------------
 --- Staging
 --------------------------------
 
-type DialogState = StateT [Dialog -> Dialog] Maybe Dialog
+initDialog :: Dialog -> Maybe RS
+initDialog d = Just (RS [const Empty] d [])
 
-stage :: Response -> Dialog -> DialogState
-stage inp d =
-  do dcons <- get
-     case reduceStar [RS dcons d [inp]] of
-       [RS dcons' d' []] ->
-         do put dcons'
-            return d'
-       _ -> lift Nothing
+stage :: Response -> RS -> Maybe RS
+stage inp (RS lam d inp') =
+  case reduceStar (reduce (RS lam d (inp' ++ [inp]))) of
+    [reduced] -> Just reduced
+    _         -> Nothing
+
+-- Alternate implementation
+--stage :: Response -> RS -> Maybe RS
+--stage inp (RS lam d inp') = (fmap fst . uncons . reduceStar . reduce) (RS lam d (inp' ++ [inp]))
+
+verifyComplete :: RS -> Maybe ()
+verifyComplete (RS [] Empty []) = Just ()
+verifyComplete _ = Nothing
 
 --------------------------------
 ------ Utility Functions -------
@@ -220,7 +270,29 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
 ------------------------------------------------------
       
 dialogA = W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]]
-rsA = RS [const Empty] dialogA [One "a", One "x", One "y", One "b"]
+resultA = initDialog dialogA
+      >>= stage (One "a")
+      >>= stage (One "x")
+      >>= stage (One "y")
+      >>= stage (One "b")
+      >>= verifyComplete
 
 dialogB = W [I ["a", "b", "c"], I ["x", "y"]]
-rsB = RS [const Empty] dialogB [Tup ["x", "y"], Tup ["a", "b", "c"]]
+resultB = initDialog dialogB
+      >>= stage (Tup ["x", "y"])
+      >>= stage (Tup ["a", "b", "c"])
+      >>= verifyComplete
+
+dialogC = PEstar ["a", "b", "c", "d", "e"]
+resultC = initDialog dialogC
+      >>= stage (Tup ["c", "e"])
+      >>= stage (One "b")
+      >>= stage (Tup ["a", "d"])
+      >>= verifyComplete
+
+dialogD = Union (C [Atom "a", Atom "b", Atom "c"]) (C [Atom "c", Atom "b", Atom "a"])
+resultD = initDialog dialogD
+      >>= stage (One "a")
+      >>= stage (One "b")
+      >>= stage (One "c")
+      >>= verifyComplete
