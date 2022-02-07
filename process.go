@@ -85,9 +85,57 @@ func Atomic(mailbox chan Message, parent chan Message, jumpTo chan Message, resp
 	}
 }
 
-// stages the dialog (W (C a^ b) (C x y))
-// on the input "a x y b rest"
+type Dialog struct {
+	mnemonic string
+	resp string          // used for Atomic
+	subdialogs []Dialog  // used for C, W
+	responses []string   // used for I, PE, ... etc.
+}
+
+// TODO: up-arrows are not supporated yet
+func spawn(d Dialog, parent chan Message) chan Message {
+	if d.mnemonic == "Atomic" {
+		mailbox := make(chan Message)
+		go Atomic(mailbox, parent, parent, d.resp)
+		return mailbox
+	} else if d.mnemonic == "W" {
+		mailbox := make(chan Message)
+		children := make([]chan Message, len(d.subdialogs));
+		for i, subD := range d.subdialogs {
+			children[i] = spawn(subD, mailbox)
+		}
+		go W(mailbox, parent, children)
+		return mailbox
+	} else if d.mnemonic == "C" {
+		mailbox := make(chan Message)
+		children := make([]chan Message, len(d.subdialogs));
+		for i, subD := range d.subdialogs {
+			children[i] = spawn(subD, mailbox)
+		}
+		go C(mailbox, parent, children)
+		return mailbox
+	}
+	return make(chan Message) // unreachable
+}
+
+// stages the dialog (W (C a b) (C x y))
+// on the input "a b x y rest"
 func main() {
+	dialog := Dialog{"W", "", []Dialog{
+		Dialog{"C", "", []Dialog{
+			Dialog{"Atomic", "a", []Dialog{}, []string{}},
+			Dialog{"Atomic", "b", []Dialog{}, []string{}}}, []string{}},
+		Dialog{"C", "", []Dialog{
+			Dialog{"Atomic", "x", []Dialog{}, []string{}},
+			Dialog{"Atomic", "y", []Dialog{}, []string{}}}, []string{}}}, []string{}}
+
+	root := make(chan Message)
+	toplevel := spawn(dialog, root)
+	toplevel <- Message{"con", []string{"a", "b", "x", "y", "rest"}}
+	fmt.Println(<-root)
+	fmt.Println(<-root)
+
+	/*
 	root := make(chan Message)
 	W1 := make(chan Message)
 	C1 := make(chan Message)
@@ -107,4 +155,5 @@ func main() {
 	W1 <- Message{"con", []string{"a", "x", "y", "b", "rest"}}
 	fmt.Println(<-root)
 	fmt.Println(<-root)
+*/
 }

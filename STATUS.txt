@@ -1,37 +1,43 @@
-TO DO
-
-1) Clean up document using style in the link I sent you.
-
 Current state of affairs
+------------------------
 
-Model 1: Rewrite rule based
+Model 1: Rewrite rules
+ - Haskell rewrite rules (without up-arrows) and with the other operations
+ - Supports a version of the W mnemonic that means full interweaving.
+ - Dialog represented as a datatype
 
-Haskell rewrite rules with (W w/o up arrow) and with the other operations; Dialog represented as a datatype
+Model 2: Stack-based semantics
 
-Model 2a: Stack-based Scheme
+  Model 2a: Scheme implementation
+    - Supports up-arrow notation, but not full set of mnemonics.
+    - Dialogs represented as lambda expressions
 
-Scheme stack based with (W w/ up arrow), but without the other operations;
-Dialog represented as a lambda expression
+  Model 2b: Haskell implementation
+    - Supports up-arrow notation, full set of mnemonics, and unions.
+    - Staging is defined using the formal reduction semantics described
+      in the Overleaf document.
+    - Dialogs represented as a datatype
 
-Model 2b: Stack-based Haskell
+Mode 3: Process based
 
-Haskell stack based with (W w/ up arrow), but without the other operations;
-Dialog represented as a datatype
+  Model 3a: Golang implementation (Zachary's preference)
+    - Supports up-arrow notation, but not full set of mnemonics
 
-Replace Model 2b with formal semantics model
+  Model 3b: Elixer implementation.
+    - Supports up-arrow notation, but not full set of mnemonics
 
-Model 3a: Defined W and up arrow in Go (Zachary's preference)
+TODO
+----
 
-Model 3b: Defined W and up arrow in Elixir
+Clean up document using style in the link I sent you.
 
-Add other dialog operators to Model 3(a or b)
-   - Models 2(a and b)
+Improve model 3a or 3b:
+ - Add other dialog operators
+ - Build recursive function to create a process tree
+   - NOTE: this is almost done, but it's clunky and doesn't support the up-arrows yet.
+ - Unhardcode input
 
-Run with hardcoded input for combo: [a, [b,c], d]
-
-Build recursive function to creating process tree
-
-Unhardcode input
+Think about evaluation
 
 2 CASE STUDIES
 
