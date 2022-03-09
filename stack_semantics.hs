@@ -1,4 +1,5 @@
 import qualified Data.Set as Set
+import Data.List (permutations)
 import Control.Monad.State
 
 data Dialog = Empty
@@ -296,3 +297,54 @@ resultD = initDialog dialogD
       >>= stage (One "b")
       >>= stage (One "c")
       >>= verifyComplete
+
+-----------------------------------------------------
+-- Evaluation
+-----------------------------------------------------
+
+-- addToEach x p
+-- Returns a list of partitions. Each partition has x inserted into one of its groups
+-- e.g. addToEachSep 100 [[1,2], [3,4]]
+--       ~> [  [[100,1,2],[3,4]],  [[1,2],[100,3,4]]  ]
+addToEachSep :: a -> [[a]] -> [[[a]]]
+addToEachSep _ [] = []
+addToEachSep x (y:ys) = [(x:y):ys] ++ fmap (y:) (addToEachSep x ys)
+
+partitions :: Int -> [a] -> [[[a]]]
+partitions _ [] = []
+partitions 1 l = [[l]]
+partitions n (x:xs) = fmap ([x]:) (partitions (n-1) xs) ++ ((partitions n xs) >>= (addToEachSep x))
+
+allpartitions :: [a] -> [[[a]]]
+allpartitions l = (from1To (length l)) >>= (\n -> partitions n l)
+  where from1To 1 = [1]
+        from1To n = from1To (n-1) ++ [n]
+
+permsOfParts :: [a] -> [[[a]]]
+permsOfParts ls = allpartitions ls >>= permutations
+
+all2Dialogs :: String -> String -> [Dialog]
+all2Dialogs a b =
+  (do (x1, y1) <- [(Atom a, Atom b), (Atom b, Atom a)]   -- pick a permutation
+      x2 <- [x1, Up x1]
+      y2 <- [y1, Up y1]  -- Arrow or no arrow
+      return $ C [x2, y2]) ++
+  (do x2 <- [Atom a, Up (Atom a)]
+      y2 <- [Atom b, Up (Atom b)]
+      return $ SPE' [x2, y2]) ++
+  [I [a, b]] ++
+  [SPE [a, b]] ++
+  [SPEstar [a, b]] ++
+  [PEstar [a, b]]
+   
+all3Dialogs :: String -> String -> String -> [Dialog]
+all3Dialogs a b c =
+  (let (a, b, c) = (Atom a, Atom b, Atom c) in
+    do (x1, y1, z1) <- [(a,b,c), (a,c,b), (b,a,c), (b,c,a), (c,a,b), (c,b,a)]
+       return $ C [x1, y1, z1]) ++
+  [SPE' [Atom a, Atom b, Atom c]] ++
+  [I [a, b, c]] ++
+  (do (x1, y1, z1) <- [(a, b, c), (b, a, c), (c, a, b)]  -- choose a 1:2 partition
+      sdialog <- all2Dialogs y1 z1
+      m <- [C, W]
+      [m [Atom x1, sdialog], m [sdialog, Atom x1]]) ++
