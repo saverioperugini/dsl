@@ -222,6 +222,43 @@ verifyComplete :: RS -> Maybe ()
 verifyComplete (RS [] Empty []) = Just ()
 verifyComplete _ = Nothing
 
+-----------------------------------------------------
+-- Generating Episodes
+-----------------------------------------------------
+
+genEpisodes :: RS -> [Response] -> [(RS, [Response])]
+genEpisodes d resps = resps >>= stageWith
+ where stageWith x = case stage x d of
+         Just newState -> [(newState, [x])]
+         Nothing       -> []
+
+genEpisodes2 :: RS -> [Response] -> [[Response]]
+genEpisodes2 d responses =
+  do (rs, rl1) <- genEpisodes d responses
+     if verifyComplete rs == Just ()
+       then
+         return rl1
+       else
+         do
+           rl2 <- genEpisodes2 rs responses
+           return (rl1 ++ rl2)
+
+{-
+genEpisodes :: Dialog -> [String] -> ([[String]], [String])
+genEpisodes Empty rs = ([], rs)
+genEpisodes (Atom x) rs
+ | [x] `subsetOf` rs = ([[x]], rs `setSubtract` [x])
+
+genEpisodes (C [d]) rs = genEpisodes d rs
+genEpisodes (C (d:ds)) rs =
+  let (eps1, rs1) = genEpisodes d rs
+      (eps2, rs2) = genEpisodes (C ds) rs1
+   in (eps1 `cross` eps2, rs2)
+    where cross [] _ = []
+          cross _ [] = []
+          cross (x:xs) (y:ys) = [x++y] ++ (fmap (x++) ys) ++ (fmap (++y) xs) ++ (cross xs ys)
+-}
+
 --------------------------------
 ------ Utility Functions -------
 --------------------------------
@@ -336,7 +373,8 @@ all2Dialogs a b =
   [SPE [a, b]] ++
   [SPEstar [a, b]] ++
   [PEstar [a, b]]
-   
+  
+{- 
 all3Dialogs :: String -> String -> String -> [Dialog]
 all3Dialogs a b c =
   (let (a, b, c) = (Atom a, Atom b, Atom c) in
@@ -348,3 +386,4 @@ all3Dialogs a b c =
       sdialog <- all2Dialogs y1 z1
       m <- [C, W]
       [m [Atom x1, sdialog], m [sdialog, Atom x1]]) ++
+-}
