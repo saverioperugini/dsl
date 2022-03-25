@@ -54,4 +54,6 @@ March 25, 2022
 
 in Model chapter, relate the specification of a dialog in the PL-notation to one or more partial orderings (represented as Hasse diagams (use Dotty)), where the goal to find the minimal expression or minimum number of partial orders(hasse diagrams) that model all of the required epidoes.
 
+Get the Haskell code rendering properly
 
+Clean up documents (block in margin, TOC)
