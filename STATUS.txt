@@ -43,3 +43,15 @@ Think about evaluation
 
 LIT REVIEW (COMPARISON)
 
+
+March 25, 2022
+
+* think of better name or acronym to replace PL-notation; if we use PL-notation, typeset it as \textsc{pl}-notation
+
+* think more about theoretical evaluation (look at two papers in the published and think if there is a way you can demonstrate clearly that you have advanced the needle).
+
+* explain idea about theoretical evaluation and why its hard
+
+in Model chapter, relate the specification of a dialog in the PL-notation to one or more partial orderings (represented as Hasse diagams (use Dotty)), where the goal to find the minimal expression or minimum number of partial orders(hasse diagrams) that model all of the required epidoes.
+
+
