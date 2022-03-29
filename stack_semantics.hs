@@ -208,15 +208,19 @@ reduce _ = []
 initDialog :: Dialog -> Maybe RS
 initDialog d = Just (RS [const Empty] d [])
 
+
 stage :: Response -> RS -> Maybe RS
 stage inp (RS lam d _) =
-  case reduceStar (reduce (RS lam d [inp])) of
+  case consumeOneInput [RS lam d [inp]] of
+    []              -> Nothing
     [RS lam' d' []] -> Just (RS lam' d' [])
-    _               -> Nothing
-
--- Alternate implementation
---stage :: Response -> RS -> Maybe RS
---stage inp (RS lam d inp') = (fmap fst . uncons . reduceStar . reduce) (RS lam d (inp' ++ [inp]))
+    other           -> Nothing
+  where consumeOneInput states = states >>= (\state ->
+          case reduce state of
+            [] -> []
+            [RS lam' d' []] -> [RS lam' d' []]
+            other -> consumeOneInput other
+          )
 
 verifyComplete :: RS -> Maybe ()
 verifyComplete (RS [] Empty []) = Just ()
@@ -226,22 +230,29 @@ verifyComplete _ = Nothing
 -- Generating Episodes
 -----------------------------------------------------
 
-genEpisodes :: RS -> [Response] -> [(RS, [Response])]
-genEpisodes d resps = resps >>= stageWith
- where stageWith x = case stage x d of
-         Just newState -> [(newState, [x])]
-         Nothing       -> []
+-- genEpisodes :: RS -> [Response] -> [(RS, [Response])]
+-- genEpisodes d resps = resps >>= stageWith
+--  where stageWith x = case stage x d of
+--          Just newState -> [(newState, [x])]
+--          Nothing       -> []
 
-genEpisodes2 :: RS -> [Response] -> [[Response]]
-genEpisodes2 d responses =
-  do (rs, rl1) <- genEpisodes d responses
-     if verifyComplete rs == Just ()
-       then
-         return rl1
-       else
-         do
-           rl2 <- genEpisodes2 rs responses
-           return (rl1 ++ rl2)
+-- genEpisodes2 :: RS -> [Response] -> [[Response]]
+-- genEpisodes2 d responses =
+--   do (rs, rl1) <- genEpisodes d responses
+--      if verifyComplete rs == Just ()
+--        then
+--          return rl1
+--        else
+--          do
+--            rl2 <- genEpisodes2 rs responses
+--            return (rl1 ++ rl2)
+
+getPossibleReductions :: RS -> [Response] -> [(RS, Response)]
+getPossibleReductions state resps = resps >>= (\resp ->
+    case stage resp state of
+      Just newState -> [(newState, resp)]
+      Nothing       -> []
+  )
 
 {-
 genEpisodes :: Dialog -> [String] -> ([[String]], [String])
