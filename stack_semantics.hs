@@ -75,7 +75,7 @@ simplify1 (PE []) = Just Empty
 simplify1 (PEstar []) = Just Empty
 -- Rule 2: one subdialog
 simplify1 (C [d]) = Just d
-simplify1 (W [d]) = Just d
+--simplify1 (W [d]) = Just d         -- This rule cannot exist with arrows
 simplify1 (I [x]) = Just (Atom x)
 simplify1 (SPE [x]) = Just (Atom x)
 simplify1 (SPEstar [x]) = Just (Atom x)
@@ -230,45 +230,23 @@ verifyComplete _ = Nothing
 -- Generating Episodes
 -----------------------------------------------------
 
--- genEpisodes :: RS -> [Response] -> [(RS, [Response])]
--- genEpisodes d resps = resps >>= stageWith
---  where stageWith x = case stage x d of
---          Just newState -> [(newState, [x])]
---          Nothing       -> []
-
--- genEpisodes2 :: RS -> [Response] -> [[Response]]
--- genEpisodes2 d responses =
---   do (rs, rl1) <- genEpisodes d responses
---      if verifyComplete rs == Just ()
---        then
---          return rl1
---        else
---          do
---            rl2 <- genEpisodes2 rs responses
---            return (rl1 ++ rl2)
-
 getPossibleReductions :: RS -> [Response] -> [(RS, Response)]
 getPossibleReductions state resps = resps >>= (\resp ->
-    case stage resp state of
-      Just newState -> [(newState, resp)]
-      Nothing       -> []
+  case stage resp state of
+    Just newState -> [(newState, resp)]
+    Nothing       -> []
   )
 
-{-
-genEpisodes :: Dialog -> [String] -> ([[String]], [String])
-genEpisodes Empty rs = ([], rs)
-genEpisodes (Atom x) rs
- | [x] `subsetOf` rs = ([[x]], rs `setSubtract` [x])
+genEpisodes :: RS -> [Response] -> [[Response]]
+genEpisodes state resps =
+  case getPossibleReductions state resps of
+    [] -> [[]]
+    reds -> reds >>= (\(state, resp) ->
+        fmap (resp:) (genEpisodes state resps)
+      )
 
-genEpisodes (C [d]) rs = genEpisodes d rs
-genEpisodes (C (d:ds)) rs =
-  let (eps1, rs1) = genEpisodes d rs
-      (eps2, rs2) = genEpisodes (C ds) rs1
-   in (eps1 `cross` eps2, rs2)
-    where cross [] _ = []
-          cross _ [] = []
-          cross (x:xs) (y:ys) = [x++y] ++ (fmap (x++) ys) ++ (fmap (++y) xs) ++ (cross xs ys)
--}
+rs = RS [const Empty] (W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]) []
+resps = [One "a", One "b", One "x", One "y"]
 
 --------------------------------
 ------ Utility Functions -------
