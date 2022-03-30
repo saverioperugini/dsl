@@ -1,5 +1,5 @@
 import qualified Data.Set as Set
-import Data.List (permutations)
+import Data.List (permutations, intercalate)
 import Control.Monad.State
 
 data Dialog = Empty
@@ -245,8 +245,13 @@ genEpisodes state resps =
         fmap (resp:) (genEpisodes state resps)
       )
 
-rs = RS [const Empty] (W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]) []
-resps = [One "a", One "b", One "x", One "y"]
+printEpisodes :: [[Response]] -> String
+printEpisodes respss =
+  intercalate "\n" ((\resps ->
+    "(" ++ intercalate " " ((\resp ->
+      show resp
+      ) <$> resps) ++ ")"
+    ) <$> respss)
 
 --------------------------------
 ------ Utility Functions -------
@@ -324,55 +329,18 @@ resultD = initDialog dialogD
       >>= stage (One "c")
       >>= verifyComplete
 
+dialogE = W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]
+
+dialogF = W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
+
 -----------------------------------------------------
--- Evaluation
+-- Main Program
 -----------------------------------------------------
 
--- addToEach x p
--- Returns a list of partitions. Each partition has x inserted into one of its groups
--- e.g. addToEachSep 100 [[1,2], [3,4]]
---       ~> [  [[100,1,2],[3,4]],  [[1,2],[100,3,4]]  ]
-addToEachSep :: a -> [[a]] -> [[[a]]]
-addToEachSep _ [] = []
-addToEachSep x (y:ys) = [(x:y):ys] ++ fmap (y:) (addToEachSep x ys)
+rs = RS [const Empty] dialogF []
+--resps = [One "a", One "b", One "x", One "y"]
+--resps = [One "a", One "b", One "c"]
+resps = [One "a", One "b", One "c", One "d", One "e", One "u", One "v", One "x", One "y"]
 
-partitions :: Int -> [a] -> [[[a]]]
-partitions _ [] = []
-partitions 1 l = [[l]]
-partitions n (x:xs) = fmap ([x]:) (partitions (n-1) xs) ++ ((partitions n xs) >>= (addToEachSep x))
-
-allpartitions :: [a] -> [[[a]]]
-allpartitions l = (from1To (length l)) >>= (\n -> partitions n l)
-  where from1To 1 = [1]
-        from1To n = from1To (n-1) ++ [n]
-
-permsOfParts :: [a] -> [[[a]]]
-permsOfParts ls = allpartitions ls >>= permutations
-
-all2Dialogs :: String -> String -> [Dialog]
-all2Dialogs a b =
-  (do (x1, y1) <- [(Atom a, Atom b), (Atom b, Atom a)]   -- pick a permutation
-      x2 <- [x1, Up x1]
-      y2 <- [y1, Up y1]  -- Arrow or no arrow
-      return $ C [x2, y2]) ++
-  (do x2 <- [Atom a, Up (Atom a)]
-      y2 <- [Atom b, Up (Atom b)]
-      return $ SPE' [x2, y2]) ++
-  [I [a, b]] ++
-  [SPE [a, b]] ++
-  [SPEstar [a, b]] ++
-  [PEstar [a, b]]
-  
-{- 
-all3Dialogs :: String -> String -> String -> [Dialog]
-all3Dialogs a b c =
-  (let (a, b, c) = (Atom a, Atom b, Atom c) in
-    do (x1, y1, z1) <- [(a,b,c), (a,c,b), (b,a,c), (b,c,a), (c,a,b), (c,b,a)]
-       return $ C [x1, y1, z1]) ++
-  [SPE' [Atom a, Atom b, Atom c]] ++
-  [I [a, b, c]] ++
-  (do (x1, y1, z1) <- [(a, b, c), (b, a, c), (c, a, b)]  -- choose a 1:2 partition
-      sdialog <- all2Dialogs y1 z1
-      m <- [C, W]
-      [m [Atom x1, sdialog], m [sdialog, Atom x1]]) ++
--}
+main :: IO ()
+main = putStr (printEpisodes (genEpisodes rs resps))
