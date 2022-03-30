@@ -741,3 +741,5 @@
       (cons inputsize (cons outputsize output)))))
 
 
+(let ((inp (mine-expr (read))))
+  (display (length inp)))

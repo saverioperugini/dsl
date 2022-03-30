@@ -1,6 +1,7 @@
 import qualified Data.Set as Set
 import Data.List (permutations, intercalate)
 import Control.Monad.State
+import System.Environment (getArgs)
 
 data Dialog = Empty
             | Atom String
@@ -205,10 +206,6 @@ reduce _ = []
 --- Staging
 --------------------------------
 
-initDialog :: Dialog -> Maybe RS
-initDialog d = Just (RS [const Empty] d [])
-
-
 stage :: Response -> RS -> Maybe RS
 stage inp (RS lam d _) =
   case consumeOneInput [RS lam d [inp]] of
@@ -221,10 +218,6 @@ stage inp (RS lam d _) =
             [RS lam' d' []] -> [RS lam' d' []]
             other -> consumeOneInput other
           )
-
-verifyComplete :: RS -> Maybe ()
-verifyComplete (RS [] Empty []) = Just ()
-verifyComplete _ = Nothing
 
 -----------------------------------------------------
 -- Generating Episodes
@@ -297,52 +290,33 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
          | Set.member x prefix = rmp xs (Set.delete x prefix)
          | otherwise           = Nothing
 
-------------------------------------------------------
--- Tests. The result_ values should all be (Just ~) --
-------------------------------------------------------
-      
-dialogA = W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]]
-resultA = initDialog dialogA
-      >>= stage (One "a")
-      >>= stage (One "x")
-      >>= stage (One "y")
-      >>= stage (One "b")
-      >>= verifyComplete
-
-dialogB = W [I ["a", "b", "c"], I ["x", "y"]]
-resultB = initDialog dialogB
-      >>= stage (Tup ["x", "y"])
-      >>= stage (Tup ["a", "b", "c"])
-      >>= verifyComplete
-
-dialogC = PEstar ["a", "b", "c", "d", "e"]
-resultC = initDialog dialogC
-      >>= stage (Tup ["c", "e"])
-      >>= stage (One "b")
-      >>= stage (Tup ["a", "d"])
-      >>= verifyComplete
-
-dialogD = Union (C [Atom "a", Atom "b", Atom "c"]) (C [Atom "c", Atom "b", Atom "a"])
-resultD = initDialog dialogD
-      >>= stage (One "a")
-      >>= stage (One "b")
-      >>= stage (One "c")
-      >>= verifyComplete
-
-dialogE = W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]
-
-dialogF = W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
-
-dialogG = W [Atom "a", C [Up (Atom "x"), Atom "y"]]
-
 -----------------------------------------------------
 -- Main Program
 -----------------------------------------------------
 
-rs = RS [const Empty] dialogE []
---resps = [One "a", One "b", One "x", One "y"]
---resps = [One "a", One "b", One "c"]
-resps = [One "a", One "b", One "c", One "d", One "e", One "u", One "v", One "x", One "y"]
+dialogExamples :: [Dialog]
+dialogExamples = [
+  W [Atom "a", C [Up (Atom "x"), Atom "y"]],
+  W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]],
+  W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]],
+  W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
+  ]
 
+-- Only supports Atom, Up, C, W
+findAllResponses :: Dialog -> [Response]
+findAllResponses (Atom x) = [One x]
+findAllResponses (Up d) = findAllResponses d
+findAllResponses (C ds) = ds >>= findAllResponses
+findAllResponses (W ds) = ds >>= findAllResponses
+findAllResponses _ = []
+
+-- run using `runhaskell gen-episodes.sh <idx>`
+-- where `<idx>` is the index into `dialogExamples`
 main :: IO ()
-main = putStr (printEpisodes (genEpisodes rs resps))
+main = do
+  args <- getArgs
+  let idx = read (head args) :: Int
+  let thedialog = dialogExamples !! idx
+  let rs = RS [const Empty] thedialog []
+  let resps = findAllResponses thedialog
+  putStrLn (printEpisodes (genEpisodes rs resps))
