@@ -296,10 +296,16 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
 
 dialogExamples :: [Dialog]
 dialogExamples = [
-  W [Atom "a", C [Up (Atom "x"), Atom "y"]],
-  W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]],
-  W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]],
-  W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
+  W [(Atom "d"), (W [(Atom "b"), (W [(Up (Atom "a")), (Atom "c")])])],
+  W [(Atom "a"), (Atom "b"), (Atom "d"), (Atom "c")],
+  W [(C [(Up (Atom "c")), (Atom "d")]), (C [(Up (Atom "a")), (Atom "b")])],
+  W [(W [(Up (Atom "b")), (Atom "a")]), (Atom "c"), (Atom "d")],
+  W [(Atom "a"), (Atom "c"), (Atom "b"), (Atom "d")],
+  W [(Atom "a"), (Atom "d"), (Atom "b"), (Atom "c")],
+  W [(W [(Up (Atom "b")), (Atom "a")]), (W [(Atom "c"), (Up (Atom "d"))])],
+  W [(Atom "a"), (Atom "c"), (Atom "d"), (Atom "b")],
+  W [(Atom "c"), (W [(Atom "b"), (Atom "d"), (Up (Atom "a"))])],
+  W [(Atom "c"), (Atom "a"), (Atom "b"), (Atom "d")]
   ]
 
 -- Only supports Atom, Up, C, W
