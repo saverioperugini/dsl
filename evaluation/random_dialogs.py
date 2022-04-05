@@ -50,5 +50,5 @@ def gen_dialog(questions):
 
 
 if __name__ == "__main__":
-  for _ in range(100):
+  for _ in range(1000):
     print("  "+gen_dialog(["a", "b", "c", "d"]) + ",")
