@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import random
+from sys import argv
 
 def partition(lst, num_parts):
   "partition a list into `num_parts` non-empty lists"
@@ -50,9 +51,10 @@ def gen_dialog(questions):
 
 
 if __name__ == "__main__":
-  for i in range(1000):
+  numDialogsToGenerate = int(argv[1])
+  for i in range(numDialogsToGenerate):
     print("  "+gen_dialog(["a", "b", "c", "d"]), sep="", end="")
-    if i < 999:
+    if i < numDialogsToGenerate - 1:
       print(",", end="\n")
     else:
       print(end="\n")

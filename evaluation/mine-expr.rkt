@@ -738,8 +738,10 @@
   (lambda ()
     (let ((inp (read)))
       (if (eof-object? inp)
-          (display "\n")
+          (display "")
           (begin
+            (display (length inp))
+            (display ";")
             (display (length (mine-expr inp)))
             (newline)
             (main))))))

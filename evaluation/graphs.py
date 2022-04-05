@@ -3,19 +3,38 @@
 import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
-  f = open("numbers.txt", "r")
-  lines = f.readlines()
-  f.close()
-  if lines[-1] == '\n':
-    lines = lines[:-1]
-  nums = [int(v) for v in lines]
+  data = []
+  with open("numbers.txt", "r") as f:
+    for line in f.readlines():
+      if line != "\n":
+        n1, n2 = line.split(";")
+        data.append((int(n1), int(n2)))
 
-  num_bins = max(nums)
+  noPrevRed = []
+  prevRed = []
+  for p, n in data:
+    if p == n:
+      noPrevRed.append(n)
+    else:
+      prevRed.append(n)
+    
+  print(f"There were {len(noPrevRed)} dialogs that previously had no reduction")
+
+  average = 0
+  for v in noPrevRed + prevRed:
+    average += v/len(data)
+  print(f"The average is {average}")
+
+  num_bins = max(max(noPrevRed), max(prevRed))
   xlabels = list(range(1, num_bins+1))
-  counts = [nums.count(x) for x in xlabels]
-  ratiolabels = [f"{xlab}:1" for xlab in xlabels]
+  noPrevRedCounts = [noPrevRed.count(x) for x in xlabels]
+  prevRedCounts = [prevRed.count(x) for x in xlabels]
+  #ratiolabels = [f"{xlab}:1" for xlab in xlabels]
   plt.xlabel("# terms in mined dialogue")
   plt.ylabel("quantity")
-  plt.bar(xlabels, counts)
+  plt.ylim(0, (prevRedCounts[0] // 50)*50 + 50)
+  plt.grid(linestyle='--', axis='y', zorder=0)
+  plt.bar(xlabels, prevRedCounts, zorder=3)
+  plt.bar(xlabels, noPrevRedCounts, bottom=prevRedCounts, zorder=3)
   plt.show()
 
