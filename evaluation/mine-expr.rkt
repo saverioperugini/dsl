@@ -733,13 +733,15 @@
                   (else (mine-expr utterance-to-I))))))))
         (else "invalid-input")))))
 
-(define mine-expr-wrapper
-  (lambda (ls)
-    (let* ((inputsize (length ls))
-           (output (mine-expr ls))
-          (outputsize (length output)))
-      (cons inputsize (cons outputsize output)))))
 
+(define main
+  (lambda ()
+    (let ((inp (read)))
+      (if (eof-object? inp)
+          (display "\n")
+          (begin
+            (display (length (mine-expr inp)))
+            (newline)
+            (main))))))
 
-(let ((inp (mine-expr (read))))
-  (display (length inp)))
+(main)

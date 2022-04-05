@@ -8,3 +8,5 @@ Current files
 * `dialogs_stack.rkt` -- Scheme stager-builder that supports uparrow notation.
 * `process.exs` -- Elixir stager using processes
 * `process.go` -- Golang stager using processes and channels
+
+For evaluation run `make` in the `evaluation/` directory, then run `graphs.py` to display a histogram.
