@@ -30,6 +30,10 @@ if __name__ == '__main__':
   noPrevRedCounts = [noPrevRed.count(x) for x in xlabels]
   prevRedCounts = [prevRed.count(x) for x in xlabels]
   #ratiolabels = [f"{xlab}:1" for xlab in xlabels]
+
+  print(f"Previously-reduced counts (blue): {prevRedCounts}")
+  print(f"Not previously-reduced counts: {noPrevRedCounts}")
+
   plt.xlabel("# terms in mined dialogue")
   plt.ylabel("quantity")
   plt.ylim(0, (prevRedCounts[0] // 50)*50 + 50)

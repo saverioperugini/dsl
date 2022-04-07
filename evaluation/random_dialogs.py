@@ -53,7 +53,7 @@ def gen_dialog(questions):
 if __name__ == "__main__":
   numDialogsToGenerate = int(argv[1])
   for i in range(numDialogsToGenerate):
-    print("  "+gen_dialog(["a", "b", "c", "d"]), sep="", end="")
+    print("  "+gen_dialog(["a", "b", "c", "d", "e"]), sep="", end="")
     if i < numDialogsToGenerate - 1:
       print(",", end="\n")
     else:
