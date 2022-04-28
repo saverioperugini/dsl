@@ -145,9 +145,7 @@ stage [y] (Atom x)
  | x == y    = Just Empty
  | otherwise = Nothing
 stage _ (Atom _) = Nothing
-stage x (C (d:ds)) = case stage x d of
-  Just newd -> Just (C (newd:ds))
-  Nothing   -> Nothing
+stage x (C (d:ds)) = (C . (:ds)) <$> stage x d
 stage _ (C []) = Nothing
 stage xs (I ds) =
   if xs `setEq` ds then Just Empty else Nothing
@@ -171,12 +169,8 @@ stage [y] (PFA1star (x:xs))
 stage ys (PFA1star xs)
  | ys `setEq` xs = Just Empty
  | otherwise     = Nothing
-stage ys (PFAn xs) = case removePrefix xs ys of
-  Just newxs -> Just (I newxs)
-  Nothing    -> Nothing
-stage ys (PFAnstar xs) = case removePrefix xs ys of
-  Just newxs -> Just (PFAnstar newxs)
-  Nothing    -> Nothing
+stage ys (PFAn xs) = I <$> removePrefix xs ys
+stage ys (PFAnstar xs) = PFAnstar <$> removePrefix xs ys
 stage ys (PE xs)
  | ys `subsetOf` xs = Just (I (xs `setSubtract` ys))
  | otherwise        = Nothing
@@ -208,19 +202,6 @@ stageFirst xs (d:ds) = case stage xs d of
 --------------------------------
 ------ Utility Functions -------
 --------------------------------
-
--- Removes empty dialogs from the list. Returns Nothing if nothing was removed.
-removeEmptyDialogs :: [Dialog] -> Maybe [Dialog]
-removeEmptyDialogs [] = Nothing
-removeEmptyDialogs (Empty:ds) = Just (maybe ds id (removeEmptyDialogs ds))
-removeEmptyDialogs (d:ds) = (d:) <$> removeEmptyDialogs ds
-
--- Removes C-dialogs from the list inserting the subdialogs instead. Only
--- a single layer is flattened.
-flattenCurries :: [Dialog] -> Maybe [Dialog]
-flattenCurries [] = Nothing
-flattenCurries ((C cs):ds) = Just (cs ++ maybe ds id (flattenCurries ds))
-flattenCurries (d:ds) = (d:) <$> flattenCurries ds
 
 -- Convenience function. Wrapper around Set.isSubsetOf
 subsetOf :: (Ord a) => [a] -> [a] -> Bool
@@ -280,38 +261,3 @@ dialogE = Union (C [Atom "a", Atom "c", Atom "b"]) (PFAnstar ["a", "b", "c"])
 resultE = Just dialogE
   >>= stage ["a"] >>= simplifyM
   >>= stage ["b", "c"] >>= simplifyM
-
-------------------------------------------------------
--- Stager Coordination
-------------------------------------------------------
-
--- An episode is a list of utterances. An utterance is a list of strings.
-type Episode = [[String]]
-
--- Stage an episode
-stageEpisode :: Episode -> Dialog -> Maybe Dialog
-stageEpisode [] d = Just d
-stageEpisode (r:rs) d = stage r d >>= simplifyM >>= stageEpisode rs
-
-------------------------------------------------------
--- Expansion
-------------------------------------------------------
-
-{-
-type EnumSpec = [Episode]   -- [[[String]]]
-
-expand :: Dialog -> EnumSpec
-expand Empty = []
-expand (Atom x) = [[[x]]]
-expand (C []) = []
-expand (C [d]) = expand d
-expand (C (d:ds)) = uncurry (++) <$> cartProd (expand d) (expand (C ds))
-expand (I xs) = [[xs]]
-
-cartProd :: [a] -> [b] -> [(a, b)]
-cartProd _ [] = []
-cartProd [] _ = []
-cartProd [a] bs = (\b -> (a,b)) <$> bs
-cartProd as [b] = (\a -> (a,b)) <$> as
-cartProd (x:xs) (y:ys) = (x, y):((\y' -> (x,y'))<$>ys) ++ ((\x' -> (x',y))<$>xs) ++ (cartProd xs ys)
--}

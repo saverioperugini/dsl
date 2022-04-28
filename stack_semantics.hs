@@ -36,7 +36,6 @@ instance Show Dialog where
   show (PFAnstar xs) = "(PFAn* " ++ unwords xs ++ ")"
   show (PE xs)       = "(PE "    ++ unwords xs ++ ")"
   show (PEstar xs)   = "(PE* "   ++ unwords xs ++ ")"
---  show (Union d1 d2) = "(Union " ++ show d1 ++ " " ++ show d2 ++ ")"
 
 data Response = One String
               | Tup [String]
@@ -53,8 +52,8 @@ instance Show Response where
 simplify :: Dialog -> Dialog
 simplify d = maybe d simplify (simplify1 d)
 
--- Convenience function. Same as simplify, but returns a Maybe so that
--- it can be used in monadic sequence.
+-- Convenience function. Same as simplify, but returns
+-- a Maybe so that it can be used in monadic sequence.
 simplifyM :: Dialog -> Maybe Dialog
 simplifyM = Just . simplify
 
@@ -207,7 +206,6 @@ reduce _ = []
 
 initDialog :: Dialog -> Maybe RS
 initDialog d = Just (RS [const Empty] d [])
-
 
 stage :: Response -> RS -> Maybe RS
 stage inp (RS lam d _) =
