@@ -145,9 +145,7 @@ stage [y] (Atom x)
  | x == y    = Just Empty
  | otherwise = Nothing
 stage _ (Atom _) = Nothing
-stage x (C (d:ds)) = case stage x d of
-  Just newd -> Just (C (newd:ds))
-  Nothing   -> Nothing
+stage x (C (d:ds)) = (C . (:ds)) <$> stage x d
 stage _ (C []) = Nothing
 stage xs (I ds) =
   if xs `setEq` ds then Just Empty else Nothing
@@ -171,12 +169,8 @@ stage [y] (PFA1star (x:xs))
 stage ys (PFA1star xs)
  | ys `setEq` xs = Just Empty
  | otherwise     = Nothing
-stage ys (PFAn xs) = case removePrefix xs ys of
-  Just newxs -> Just (I newxs)
-  Nothing    -> Nothing
-stage ys (PFAnstar xs) = case removePrefix xs ys of
-  Just newxs -> Just (PFAnstar newxs)
-  Nothing    -> Nothing
+stage ys (PFAn xs) = I <$> removePrefix xs ys
+stage ys (PFAnstar xs) = PFAnstar <$> removePrefix xs ys
 stage ys (PE xs)
  | ys `subsetOf` xs = Just (I (xs `setSubtract` ys))
  | otherwise        = Nothing
@@ -267,15 +261,3 @@ dialogE = Union (C [Atom "a", Atom "c", Atom "b"]) (PFAnstar ["a", "b", "c"])
 resultE = Just dialogE
   >>= stage ["a"] >>= simplifyM
   >>= stage ["b", "c"] >>= simplifyM
-
-------------------------------------------------------
--- Stager Coordination
-------------------------------------------------------
-
--- An episode is a list of utterances. An utterance is a list of strings.
-type Episode = [[String]]
-
--- Stage an episode
-stageEpisode :: Episode -> Dialog -> Maybe Dialog
-stageEpisode [] d = Just d
-stageEpisode (r:rs) d = stage r d >>= simplifyM >>= stageEpisode rs
