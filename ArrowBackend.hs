@@ -1,3 +1,5 @@
+module ArrowBackend where
+
 import qualified Data.Set as Set
 import Data.List (permutations, intercalate)
 import Control.Monad.State
@@ -344,5 +346,3 @@ rs = RS [const Empty] dialogE []
 --resps = [One "a", One "b", One "c"]
 resps = [One "a", One "b", One "c", One "d", One "e", One "u", One "v", One "x", One "y"]
 
-main :: IO ()
-main = putStr (printEpisodes (genEpisodes rs resps))

@@ -34,8 +34,8 @@ if __name__ == '__main__':
   print(f"Previously-reduced counts (blue): {prevRedCounts}")
   print(f"Not previously-reduced counts: {noPrevRedCounts}")
 
-  plt.xlabel("# terms in mined dialogue")
-  plt.ylabel("quantity")
+  plt.xlabel("Compression factor")
+  plt.ylabel("Frequency")
   plt.ylim(0, (prevRedCounts[0] // 50)*50 + 50)
   plt.grid(linestyle='--', axis='y', zorder=0)
   plt.bar(xlabels, prevRedCounts, zorder=3)

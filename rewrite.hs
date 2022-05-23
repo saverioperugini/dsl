@@ -209,19 +209,6 @@ stageFirst xs (d:ds) = case stage xs d of
 ------ Utility Functions -------
 --------------------------------
 
--- Removes empty dialogs from the list. Returns Nothing if nothing was removed.
-removeEmptyDialogs :: [Dialog] -> Maybe [Dialog]
-removeEmptyDialogs [] = Nothing
-removeEmptyDialogs (Empty:ds) = Just (maybe ds id (removeEmptyDialogs ds))
-removeEmptyDialogs (d:ds) = (d:) <$> removeEmptyDialogs ds
-
--- Removes C-dialogs from the list inserting the subdialogs instead. Only
--- a single layer is flattened.
-flattenCurries :: [Dialog] -> Maybe [Dialog]
-flattenCurries [] = Nothing
-flattenCurries ((C cs):ds) = Just (cs ++ maybe ds id (flattenCurries ds))
-flattenCurries (d:ds) = (d:) <$> flattenCurries ds
-
 -- Convenience function. Wrapper around Set.isSubsetOf
 subsetOf :: (Ord a) => [a] -> [a] -> Bool
 subsetOf l1 l2 = Set.isSubsetOf (Set.fromList l1) (Set.fromList l2)
@@ -292,26 +279,3 @@ type Episode = [[String]]
 stageEpisode :: Episode -> Dialog -> Maybe Dialog
 stageEpisode [] d = Just d
 stageEpisode (r:rs) d = stage r d >>= simplifyM >>= stageEpisode rs
-
-------------------------------------------------------
--- Expansion
-------------------------------------------------------
-
-{-
-type EnumSpec = [Episode]   -- [[[String]]]
-
-expand :: Dialog -> EnumSpec
-expand Empty = []
-expand (Atom x) = [[[x]]]
-expand (C []) = []
-expand (C [d]) = expand d
-expand (C (d:ds)) = uncurry (++) <$> cartProd (expand d) (expand (C ds))
-expand (I xs) = [[xs]]
-
-cartProd :: [a] -> [b] -> [(a, b)]
-cartProd _ [] = []
-cartProd [] _ = []
-cartProd [a] bs = (\b -> (a,b)) <$> bs
-cartProd as [b] = (\a -> (a,b)) <$> as
-cartProd (x:xs) (y:ys) = (x, y):((\y' -> (x,y'))<$>ys) ++ ((\x' -> (x',y))<$>xs) ++ (cartProd xs ys)
--}
