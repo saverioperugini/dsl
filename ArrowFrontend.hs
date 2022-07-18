@@ -4,23 +4,41 @@ import ArrowBackend
 
 --- Dialogue configuration ---
 
-initialState = SPE' [Atom "size", Atom "blend", Atom "cream"]
+initialState = W [
+  C [Up (Atom "protein"), Up (Atom "rice"), Up (Atom "beans"), Atom "side"],
+  C [Atom "plant-based", Atom "lifestyle", Atom "avoiding"]
+  ]
 
 prompts = Map.fromList [
-  ("size", "What size would you like?"),
-  ("blend", "What blend would you like?"),
-  ("cream", "Do you want cream?")
+  ("protein", "What protein would you like? [steak, chicken]"),
+  ("rice", "What rice would you like? [white, brown]"),
+  ("beans", "What beans would you like? [black, pinto]"),
+  ("side", "What side would you like? [chips, salsa, tortilla]"),
+  ("plant-based", "Would you like a plant-based meal? [vegetarian, vegan, not-plant-based]"),
+  ("lifestyle", "Set a lifestyle preference? [paleo, keto, no-lifestyle]"),
+  ("avoiding", "Are you avoiding any ingredients? [gluten, dairy, soy, not-avoiding]")
   ]
 
 responses = Map.fromList [
-  ("small", "size"),
-  ("medium", "size"),
-  ("large", "size"),
-  ("mocha", "blend"),
-  ("latte", "blend"),
-  ("black", "blend"),
-  ("yes", "cream"),
-  ("no", "cream")
+  ("steak", "protein"),
+  ("chicken", "protein"),
+  ("white", "rice"),
+  ("brown", "rice"),
+  ("black", "beans"),
+  ("pinto", "beans"),
+  ("chips", "side"),
+  ("salsa", "side"),
+  ("tortilla", "side"),
+  ("vegetarian", "plant-based"),
+  ("vegan", "plant-based"),
+  ("not-plant-based", "plant-based"),
+  ("paleo", "lifestyle"),
+  ("keto", "lifestyle"),
+  ("no-lifestyle", "lifestyle"),
+  ("gluten", "avoiding"),
+  ("dairy", "avoiding"),
+  ("soy", "avoiding"),
+  ("not-avoiding", "avoiding")
   ]
 
 ------------------------------

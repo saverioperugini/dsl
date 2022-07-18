@@ -10,6 +10,29 @@ if __name__ == '__main__':
         n1, n2 = line.split(";")
         data.append((int(n1), int(n2)))
 
+  # --------------------------------------------------------------
+  # Frequency vs. Compression Factor from Enumerated Specification
+  # --------------------------------------------------------------
+  
+  enum_spec_lens = [pn[0] for pn in data]
+  num_bins = max(enum_spec_lens)
+  xlabels = list(range(1, num_bins+1))
+  counts = [enum_spec_lens.count(x) for x in xlabels]
+  average = sum(enum_spec_lens) / len(enum_spec_lens)
+
+  print("The average episode length is ", average)
+
+  plt.xlabel("Number of episodes")
+  plt.ylabel("Frequency")
+  plt.grid(linestyle='--', axis='y', zorder=0)
+  plt.bar(xlabels, counts)
+  plt.axvline(x=average, color='red', linestyle='--')
+  plt.show()
+
+  # --------------------------------------------------
+  # Frequency vs. Compression Factor from Original DSL
+  # --------------------------------------------------
+
   noPrevRed = []
   prevRed = []
   for p, n in data:
@@ -34,11 +57,19 @@ if __name__ == '__main__':
   print(f"Previously-reduced counts (blue): {prevRedCounts}")
   print(f"Not previously-reduced counts: {noPrevRedCounts}")
 
-  plt.xlabel("Compression factor")
+  plt.xlabel("Number of terms")
   plt.ylabel("Frequency")
   plt.ylim(0, (prevRedCounts[0] // 50)*50 + 50)
   plt.grid(linestyle='--', axis='y', zorder=0)
   plt.bar(xlabels, prevRedCounts, zorder=3)
   plt.bar(xlabels, noPrevRedCounts, bottom=prevRedCounts, zorder=3)
+  plt.axvline(x=average, color='red', linestyle='--')
   plt.show()
 
+  # Original thing
+
+  plt.xlabel("Number of terms")
+  plt.ylabel("Frequency")
+  plt.grid(linestyle='--', axis='y', zorder=0)
+  plt.bar(range(0, 30+1), [0,1000]+ [0]*29)
+  plt.show()
