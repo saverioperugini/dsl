@@ -1,31 +1,31 @@
 import qualified Data.Set as Set
 
-data Dialog = Empty
+data Dialogue = Empty
             | Single String
-            | C [Dialog]
-            | Up Dialog Integer
+            | C [Dialogue]
+            | Up Dialogue Integer
 --            | I [String]
 --            | SPE [String]
 --            | SPEstar [String]
---            | SPE' [Dialog]
+--            | SPE' [Dialogue]
 --            | PFA1 [String]
 --            | PFA1star [String]
 --            | PFAn [String]
 --            | PFAnstar [String]
 --            | PE [String]
 --            | PEstar [String]
-            | W [Dialog]
---            | Union Dialog Dialog
+            | W [Dialogue]
+--            | Union Dialogue Dialogue
 
-instance Show Dialog where
+instance Show Dialogue where
   show Empty = "~"
   show (Single s) = s
   show (C ds) = "(C " ++ unwords (show <$> ds) ++ ")"
   show (Up d i) = "(Up " ++ show d ++ " " ++ show i ++ ")"
   show (W ds) = "(W " ++ unwords (show <$> ds) ++ ")"
 
--- Staging now takes a response and a stack of dialogs
-stage :: String -> [Dialog] -> Maybe [Dialog]
+-- Staging now takes a response and a stack of dialogues
+stage :: String -> [Dialogue] -> Maybe [Dialogue]
 stage _ [] = Nothing
 stage y (Empty:rest) = stage y rest
 stage y ((Single x):rest)
@@ -43,17 +43,17 @@ stage y ((W threads):rest) = help [] threads
           Just stack -> Just stack
           Nothing    -> help (xs ++ [z]) zs
 
--- inserts the first dialog into the second dialog
--- acts like "requeueing" the dialog after it has been suspended
-insert :: Dialog -> Dialog -> Dialog
+-- inserts the first dialogue into the second dialogue
+-- acts like "requeueing" the dialogue after it has been suspended
+insert :: Dialogue -> Dialogue -> Dialogue
 insert d1 Empty = d1
 insert d1 (Single _) = d1   -- this is very bad
 insert d1 (C d2) = C (d1:d2)
 insert d1 (W d2) = W (d1:d2)
 
 
-dialogA :: Dialog 
-dialogA = W [
+dialogueA :: Dialogue 
+dialogueA = W [
   W [
     C [Up (Single "a") 1, Single "b"],
     C [Up (Single "c") 2, Single "d"]

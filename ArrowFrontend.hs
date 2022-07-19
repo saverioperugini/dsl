@@ -46,11 +46,11 @@ responses = Map.fromList [
 red :: String -> String
 red s = "\x1B[31m" ++ s ++ "\x1B[0m"
 
-getDialogComponent :: RS -> Dialog
-getDialogComponent (RS _ d _) = d
+getDialogueComponent :: RS -> Dialogue
+getDialogueComponent (RS _ d _) = d
 
-execDialog :: RS -> IO ()
-execDialog d = case getNextTask (getDialogComponent d) of
+execDialogue :: RS -> IO ()
+execDialogue d = case getNextTask (getDialogueComponent d) of
   Just t  -> case Map.lookup t prompts of
     Just prompt -> do
       putStr "[sys] "
@@ -61,18 +61,18 @@ execDialog d = case getNextTask (getDialogComponent d) of
         Just t' -> case stage (One t') d of
           Just d' -> do
             putStrLn "[sys] Ok."
-            execDialog d'
+            execDialogue d'
           Nothing -> do
             putStrLn $ red "[sys] Error, cannot do this task at this time"
-            execDialog d
+            execDialogue d
         Nothing -> do
           putStrLn $ red "[sys] Error, did not recognize that response."
-          execDialog d
+          execDialogue d
     Nothing -> putStrLn $ red "[sys] Error, no prompt found for this task!"
   Nothing -> putStrLn "Dialogue complete!"
 
 -- Get the task to prompt for next
-getNextTask :: Dialog -> Maybe String
+getNextTask :: Dialogue -> Maybe String
 getNextTask Empty = Nothing
 getNextTask (Atom s) = Just s
 getNextTask (Up d) = getNextTask d
@@ -92,4 +92,4 @@ getNextTask (PEstar (s:_)) = Just s
 getNextTask _ = Nothing
 
 main :: IO ()
-main = execDialog (RS [const Empty] initialState [])
+main = execDialogue (RS [const Empty] initialState [])

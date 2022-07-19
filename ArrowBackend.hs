@@ -4,16 +4,16 @@ import qualified Data.Set as Set
 import Data.List (permutations, intercalate)
 import Control.Monad.State
 
-data Dialog = Empty
+data Dialogue = Empty
             | Atom String
-            | Up Dialog
-            | Union Dialog Dialog
-            | C [Dialog]
-            | W [Dialog]
+            | Up Dialogue
+            | Union Dialogue Dialogue
+            | C [Dialogue]
+            | W [Dialogue]
             | I [String]
             | SPE [String]
             | SPEstar [String]
-            | SPE' [Dialog]
+            | SPE' [Dialogue]
             | PFA1 [String]
             | PFA1star [String]
             | PFAn [String]
@@ -21,7 +21,7 @@ data Dialog = Empty
             | PE [String]
             | PEstar [String]
 
-instance Show Dialog where
+instance Show Dialogue where
   show Empty         = "~"
   show (Atom s)      = s
   show (Up d)        = "(Up "    ++ show d ++ ")"
@@ -51,17 +51,17 @@ instance Show Response where
 -------------------------------------
 
 -- Completely simplify
-simplify :: Dialog -> Dialog
+simplify :: Dialogue -> Dialogue
 simplify d = maybe d simplify (simplify1 d)
 
 -- Convenience function. Same as simplify, but returns
 -- a Maybe so that it can be used in monadic sequence.
-simplifyM :: Dialog -> Maybe Dialog
+simplifyM :: Dialogue -> Maybe Dialogue
 simplifyM = Just . simplify
 
 -- Applies a single simplification rule
-simplify1 :: Dialog -> Maybe Dialog
--- Rule 1: zero subdialogs
+simplify1 :: Dialogue -> Maybe Dialogue
+-- Rule 1: zero subdialogues
 simplify1 (C []) = Just Empty
 simplify1 (W []) = Just Empty
 simplify1 (I []) = Just Empty
@@ -74,7 +74,7 @@ simplify1 (PFAn []) = Just Empty
 simplify1 (PFAnstar []) = Just Empty
 simplify1 (PE []) = Just Empty
 simplify1 (PEstar []) = Just Empty
--- Rule 2: one subdialog
+-- Rule 2: one subdialogue
 simplify1 (C [d]) = Just d
 --simplify1 (W [d]) = Just d         -- This rule cannot exist with arrows
 simplify1 (I [x]) = Just (Atom x)
@@ -88,15 +88,15 @@ simplify1 (PFAnstar [x]) = Just (Atom x)
 simplify1 (PE [x]) = Just (Atom x)
 simplify1 (PEstar [x]) = Just (Atom x)
 -- Other rules
-simplify1 (C ds) = case removeEmptyDialogs ds of
+simplify1 (C ds) = case removeEmptyDialogues ds of
   Just newsubs -> Just (C newsubs)
   Nothing      -> case flattenCurries ds of
     Just newsubs -> Just (C newsubs)
     Nothing      -> C <$> simplifyL ds
-simplify1 (SPE' ds) = case removeEmptyDialogs ds of
+simplify1 (SPE' ds) = case removeEmptyDialogues ds of
   Just newsubs -> Just (SPE' newsubs)
   Nothing      -> SPE' <$> simplifyL ds
-simplify1 (W ds) = case removeEmptyDialogs ds of
+simplify1 (W ds) = case removeEmptyDialogues ds of
   Just newsubs -> Just (W newsubs)
   Nothing      -> W <$> simplifyL ds
 simplify1 (Union d1 d2) = case simplify1 d1 of
@@ -106,8 +106,8 @@ simplify1 (Union d1 d2) = case simplify1 d1 of
     Nothing  -> Nothing
 simplify1 _ = Nothing
 
--- Simplifies the first dialog it can
-simplifyL :: [Dialog] -> Maybe [Dialog]
+-- Simplifies the first dialogue it can
+simplifyL :: [Dialogue] -> Maybe [Dialogue]
 simplifyL [] = Nothing
 simplifyL (d:ds) = case simplify1 d of
   Just newd -> Just (newd:ds)
@@ -117,15 +117,15 @@ simplifyL (d:ds) = case simplify1 d of
 -- Reduction
 -----------------------------------------
 
-data RS = RS [Dialog -> Dialog] Dialog [Response]
+data RS = RS [Dialogue -> Dialogue] Dialogue [Response]
 
 instance Show RS where
   show (RS lam d inp) = "(Lam{len=" ++ show (length lam) ++ "}, " ++ show d ++ ", " ++ show inp ++ ")"
 
 -- Builts a reduction state and reduces as far as possible.
 -- Should always reduce to at most one state.
-dialogAcceptsInput :: Dialog -> [Response] -> Bool
-dialogAcceptsInput d inp = case reduceStar [RS [const Empty] d inp] of
+dialogueAcceptsInput :: Dialogue -> [Response] -> Bool
+dialogueAcceptsInput d inp = case reduceStar [RS [const Empty] d inp] of
   [RS [] Empty []] -> True
   _                -> False
 
@@ -206,8 +206,8 @@ reduce _ = []
 --- Staging
 --------------------------------
 
-initDialog :: Dialog -> Maybe RS
-initDialog d = Just (RS [const Empty] d [])
+initDialogue :: Dialogue -> Maybe RS
+initDialogue d = Just (RS [const Empty] d [])
 
 stage :: Response -> RS -> Maybe RS
 stage inp (RS lam d _) =
@@ -257,15 +257,15 @@ printEpisodes respss =
 ------ Utility Functions -------
 --------------------------------
 
--- Removes empty dialogs from the list. Returns Nothing if nothing was removed.
-removeEmptyDialogs :: [Dialog] -> Maybe [Dialog]
-removeEmptyDialogs [] = Nothing
-removeEmptyDialogs (Empty:ds) = Just (maybe ds id (removeEmptyDialogs ds))
-removeEmptyDialogs (d:ds) = (d:) <$> removeEmptyDialogs ds
+-- Removes empty dialogues from the list. Returns Nothing if nothing was removed.
+removeEmptyDialogues :: [Dialogue] -> Maybe [Dialogue]
+removeEmptyDialogues [] = Nothing
+removeEmptyDialogues (Empty:ds) = Just (maybe ds id (removeEmptyDialogues ds))
+removeEmptyDialogues (d:ds) = (d:) <$> removeEmptyDialogues ds
 
--- Removes C-dialogs from the list inserting the subdialogs instead. Only
+-- Removes C-dialogues from the list inserting the subdialogues instead. Only
 -- a single layer is flattened.
-flattenCurries :: [Dialog] -> Maybe [Dialog]
+flattenCurries :: [Dialogue] -> Maybe [Dialogue]
 flattenCurries [] = Nothing
 flattenCurries ((C cs):ds) = Just (cs ++ maybe ds id (flattenCurries ds))
 flattenCurries (d:ds) = (d:) <$> flattenCurries ds
@@ -301,45 +301,45 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
 -- Tests. The result_ values should all be (Just ~) --
 ------------------------------------------------------
       
-dialogA = W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]]
-resultA = initDialog dialogA
+dialogueA = W [C [Up (Atom "a"), Atom "b"], C [Atom "x", Atom "y"]]
+resultA = initDialogue dialogueA
       >>= stage (One "a")
       >>= stage (One "x")
       >>= stage (One "y")
       >>= stage (One "b")
       >>= verifyComplete
 
-dialogB = W [I ["a", "b", "c"], I ["x", "y"]]
-resultB = initDialog dialogB
+dialogueB = W [I ["a", "b", "c"], I ["x", "y"]]
+resultB = initDialogue dialogueB
       >>= stage (Tup ["x", "y"])
       >>= stage (Tup ["a", "b", "c"])
       >>= verifyComplete
 
-dialogC = PEstar ["a", "b", "c", "d", "e"]
-resultC = initDialog dialogC
+dialogueC = PEstar ["a", "b", "c", "d", "e"]
+resultC = initDialogue dialogueC
       >>= stage (Tup ["c", "e"])
       >>= stage (One "b")
       >>= stage (Tup ["a", "d"])
       >>= verifyComplete
 
-dialogD = Union (C [Atom "a", Atom "b", Atom "c"]) (C [Atom "c", Atom "b", Atom "a"])
-resultD = initDialog dialogD
+dialogueD = Union (C [Atom "a", Atom "b", Atom "c"]) (C [Atom "c", Atom "b", Atom "a"])
+resultD = initDialogue dialogueD
       >>= stage (One "a")
       >>= stage (One "b")
       >>= stage (One "c")
       >>= verifyComplete
 
-dialogE = W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]
+dialogueE = W [C [Up (Atom "a"), Atom "b"], C [Up (Atom "x"), Atom "y"]]
 
-dialogF = W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
+dialogueF = W [C [Up (Atom "a"), Up (Atom "b"), Up (Atom "c"), Up (Atom "d"), Atom "e"], C [Atom "u", Up (Atom "v"), Atom "x", Atom "y"]]
 
-dialogG = W [Atom "a", C [Up (Atom "x"), Atom "y"]]
+dialogueG = W [Atom "a", C [Up (Atom "x"), Atom "y"]]
 
 -----------------------------------------------------
 -- Main Program
 -----------------------------------------------------
 
-rs = RS [const Empty] dialogE []
+rs = RS [const Empty] dialogueE []
 --resps = [One "a", One "b", One "x", One "y"]
 --resps = [One "a", One "b", One "c"]
 resps = [One "a", One "b", One "c", One "d", One "e", One "u", One "v", One "x", One "y"]

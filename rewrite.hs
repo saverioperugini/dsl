@@ -1,5 +1,5 @@
 {- rewrite.hs
- - Haskell dialog rewrite and simplification rules.
+ - Haskell dialogue rewrite and simplification rules.
  - Does not support uparrow notation.
  -}
 
@@ -7,25 +7,25 @@ import qualified Data.Set as Set
 import Control.Applicative ((<|>))
 
 --------------------------------
------- Dialog Definition -------
+------ Dialogue Definition -------
 --------------------------------
 
-data Dialog = Empty
+data Dialogue = Empty
             | Atom String
-            | C [Dialog]
+            | C [Dialogue]
             | I [String]
             | SPE [String]
             | SPEstar [String]
-            | SPE' [Dialog]
+            | SPE' [Dialogue]
             | PFA1 [String]
             | PFA1star [String]
             | PFAn [String]
             | PFAnstar [String]
             | PE [String]
             | PEstar [String]
-            | Union Dialog Dialog
+            | Union Dialogue Dialogue
 
-instance Show Dialog where
+instance Show Dialogue where
   show Empty = "~"
   show (Atom s) = s
   show (C ds) = "(C " ++ unwords (show <$> ds) ++ ")"
@@ -46,30 +46,30 @@ instance Show Dialog where
 -------------------------------------
 
 -- Completely simplify
-simplify :: Dialog -> Dialog
+simplify :: Dialogue -> Dialogue
 simplify d = maybe d simplify (simplifySelfOrSub d)
 
 -- Convenience function. Same as simplify, but returns a Maybe so that
 -- it can be used in monadic sequence.
-simplifyM :: Dialog -> Maybe Dialog
+simplifyM :: Dialogue -> Maybe Dialogue
 simplifyM = Just . simplify
 
-simplifySelfOrSub :: Dialog -> Maybe Dialog
+simplifySelfOrSub :: Dialogue -> Maybe Dialogue
 simplifySelfOrSub d = simplify1 d <|> simplifySub d
 
-simplifySub :: Dialog -> Maybe Dialog
+simplifySub :: Dialogue -> Maybe Dialogue
 simplifySub (C ds) = C <$> simplifyFirst ds
 simplifySub (SPE' ds) = SPE' <$> simplifyFirst ds
 simplifySub _ = Nothing
 
-simplifyFirst :: [Dialog] -> Maybe [Dialog]
+simplifyFirst :: [Dialogue] -> Maybe [Dialogue]
 simplifyFirst [] = Nothing
 simplifyFirst (d:ds) =
       ((:ds) <$> simplifySelfOrSub d)
   <|> ((d:) <$> simplifyFirst ds)
 
 -- Applies a single simplification rule
-simplify1 :: Dialog -> Maybe Dialog
+simplify1 :: Dialogue -> Maybe Dialogue
 simplify1 d =
       empty1_rule d
   <|> empty2_rule d
@@ -79,7 +79,7 @@ simplify1 d =
   <|> atom2_rule d
   <|> flatten_rule d
 
-empty1_rule :: Dialog -> Maybe Dialog
+empty1_rule :: Dialogue -> Maybe Dialogue
 empty1_rule (C []) = Just Empty
 empty1_rule (I []) = Just Empty
 empty1_rule (SPE []) = Just Empty
@@ -93,7 +93,7 @@ empty1_rule (PE []) = Just Empty
 empty1_rule (PEstar []) = Just Empty
 empty1_rule _ = Nothing
 
-empty2_rule :: Dialog -> Maybe Dialog
+empty2_rule :: Dialogue -> Maybe Dialogue
 empty2_rule d = case d of
   (C ds)    -> C <$> removeEmpty ds
   (SPE' ds) -> SPE' <$> removeEmpty ds
@@ -102,20 +102,20 @@ empty2_rule d = case d of
         removeEmpty (Empty:ds) = Just ds
         removeEmpty (d:ds) = (d:) <$> removeEmpty ds
 
-empty3_rule :: Dialog -> Maybe Dialog
+empty3_rule :: Dialogue -> Maybe Dialogue
 empty3_rule (Union Empty d) = Just d
 empty3_rule _ = Nothing
 
-empty4_rule :: Dialog -> Maybe Dialog
+empty4_rule :: Dialogue -> Maybe Dialogue
 empty4_rule (Union d Empty) = Just d
 empty4_rule _ = Nothing
 
-atom1_rule :: Dialog -> Maybe Dialog
+atom1_rule :: Dialogue -> Maybe Dialogue
 atom1_rule (C [d]) = Just d
 atom1_rule (SPE' [d]) = Just d
 atom1_rule _ = Nothing
 
-atom2_rule :: Dialog -> Maybe Dialog
+atom2_rule :: Dialogue -> Maybe Dialogue
 atom2_rule (I [x]) = Just (Atom x)
 atom2_rule (SPE [x]) = Just (Atom x)
 atom2_rule (SPEstar [x]) = Just (Atom x)
@@ -127,7 +127,7 @@ atom2_rule (PE [x]) = Just (Atom x)
 atom2_rule (PEstar [x]) = Just (Atom x)
 atom2_rule _ = Nothing
 
-flatten_rule :: Dialog -> Maybe Dialog
+flatten_rule :: Dialogue -> Maybe Dialogue
 flatten_rule (C ds) = C <$> flatten ds
   where flatten [] = Nothing
         flatten ((C cs):ds) = Just (cs ++ ds)
@@ -138,7 +138,7 @@ flatten_rule _ = Nothing
 ------------ Staging ----------------
 -------------------------------------
 
-stage :: [String] -> Dialog -> Maybe Dialog
+stage :: [String] -> Dialogue -> Maybe Dialogue
 stage _ Empty = Nothing
 stage [] _ = Nothing
 stage [y] (Atom x)
@@ -183,17 +183,17 @@ stage ys (Union d1 d2) = case (stage ys d1, stage ys d2) of
   (Just d1', Nothing) -> Just d1'
   (Just d1', Just d2') -> Just (Union d1' d2')
 
--- Stages the given response with the first dialog it can.
--- If successful, returns (stageddialog, otherdialogs)
-stageFirstGet :: [String] -> [Dialog] -> Maybe (Dialog, [Dialog])
+-- Stages the given response with the first dialogue it can.
+-- If successful, returns (stageddialogue, otherdialogues)
+stageFirstGet :: [String] -> [Dialogue] -> Maybe (Dialogue, [Dialogue])
 stageFirstGet xs [] = Nothing
 stageFirstGet xs (d:ds) = case stage xs d of
   Just newd -> Just (newd, ds)
   Nothing   -> do (staged, rest) <- stageFirstGet xs ds
                   return (staged, d:rest)
 
--- Stages the given response with the first dialog it can
-stageFirst :: [String] -> [Dialog] -> Maybe [Dialog]
+-- Stages the given response with the first dialogue it can
+stageFirst :: [String] -> [Dialogue] -> Maybe [Dialogue]
 stageFirst _ [] = Nothing
 stageFirst xs (d:ds) = case stage xs d of
   Just newd -> Just (newd:ds)
@@ -234,30 +234,30 @@ removePrefix list prefix = rmp list (Set.fromList prefix)
 -- Tests. The result_ values should all be (Just ~) --
 ------------------------------------------------------
 
-dialogA = C [Atom "size", Atom "blend", Atom "cream"]
-resultA = Just dialogA
+dialogueA = C [Atom "size", Atom "blend", Atom "cream"]
+resultA = Just dialogueA
   >>= stage ["size"] >>= simplifyM
   >>= stage ["blend"] >>= simplifyM
   >>= stage ["cream"] >>= simplifyM
 
-dialogB = C [Atom "size", I ["blend", "cream"]]
-resultB = Just dialogB
+dialogueB = C [Atom "size", I ["blend", "cream"]]
+resultB = Just dialogueB
   >>= stage ["size"] >>= simplifyM
   >>= stage ["blend", "cream"] >>= simplifyM
 
-dialogC = PEstar ["a", "b", "c", "d"]
-resultC = Just dialogC
+dialogueC = PEstar ["a", "b", "c", "d"]
+resultC = Just dialogueC
   >>= stage ["d", "b"] >>= simplifyM
   >>= stage ["a"] >>= simplifyM
   >>= stage ["c"] >>= simplifyM
 
-dialogD = SPE' [C [Atom "a", Atom "b"], I ["c", "d"]]
-resultD = Just dialogD
+dialogueD = SPE' [C [Atom "a", Atom "b"], I ["c", "d"]]
+resultD = Just dialogueD
   >>= stage ["a"] >>= simplifyM
   >>= stage ["b"] >>= simplifyM
   >>= stage ["c", "d"] >>= simplifyM
 
-dialogE = Union (C [Atom "a", Atom "c", Atom "b"]) (PFAnstar ["a", "b", "c"])
-resultE = Just dialogE
+dialogueE = Union (C [Atom "a", Atom "c", Atom "b"]) (PFAnstar ["a", "b", "c"])
+resultE = Just dialogueE
   >>= stage ["a"] >>= simplifyM
   >>= stage ["b", "c"] >>= simplifyM

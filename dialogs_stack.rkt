@@ -15,7 +15,7 @@
           (((cadr stack) ((car stack) 'done)) (cdr input) (cddr stack))
           'error))))
 
-; subdialogs -> (input, stack) -> result
+; sub-dialogues -> (input, stack) -> result
 (define C
   (lambda ds
     (lambda (input stack)
@@ -55,8 +55,8 @@
             (W-help '() ds))))))
 
 (define stage
-  (lambda (dialog input)
-    (dialog input (list (lambda (d) (lambda (in st) in))))))
+  (lambda (dialogue input)
+    (dialogue input (list (lambda (d) (lambda (in st) in))))))
 
 (define example
   (W (C (UpSingle 'a) (Single 'b)) (C (Single 'x) (Single 'y))))
