@@ -343,4 +343,3 @@ rs = RS [const Empty] dialogueE []
 --resps = [One "a", One "b", One "x", One "y"]
 --resps = [One "a", One "b", One "c"]
 resps = [One "a", One "b", One "c", One "d", One "e", One "u", One "v", One "x", One "y"]
-

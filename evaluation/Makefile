@@ -1,9 +1,12 @@
+SHELL := /opt/local/bin/bash
+
 numDialogsToGenerate = 1000
 
-numbers.txt : TestDialogs.hs GenEpisodes.hs mine-expr.rkt
-	runhaskell TestDialogs.hs | racket mine-expr.rkt > numbers.txt
+numbers.txt: TestDialogs.hs GenEpisodes.hs mine-expr.rkt
+	#runhaskell TestDialogs.hs | racket mine-expr.rkt > numbers.txt
+	runhaskell TestDialogs.hs | '/Applications/Racket v8.14/bin/racket' mine-expr.rkt > numbers.txt
 
-TestDialogs.hs : random_dialogs.py
+TestDialogs.hs: random_dialogs.py
 	echo "import GenEpisodes" > TestDialogs.hs
 	echo "" >> TestDialogs.hs
 	echo "main = GenEpisodes.mainLoop testDialogs" >> TestDialogs.hs
